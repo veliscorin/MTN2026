@@ -1,0 +1,5 @@
+[
+  { "id": "sch_01", "name": "Raffles Institution", "domain": "ri.edu.sg" },
+  { "id": "sch_02", "name": "Hwa Chong Institution", "domain": "hci.edu.sg" },
+  { "id": "sch_03", "name": "Anglo-Chinese School", "domain": "acs.edu.sg" }
+]
