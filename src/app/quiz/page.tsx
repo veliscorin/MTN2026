@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAntiCheat } from '@/hooks/useAntiCheat';
 import questionsData from '@/data/questions.json';
+import { SESSION_END_TIME } from '@/config/session';
 
 type Question = {
   qid: string;
@@ -50,6 +51,7 @@ export default function QuizPage() {
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showWarningModal, setShowWarningModal] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   const { strikeCount } = useAntiCheat({
     onDisqualify: () => {
@@ -63,6 +65,32 @@ export default function QuizPage() {
       setShowWarningModal(true);
     }
   }, [strikeCount]);
+
+  // Effect for Timer
+  useEffect(() => {
+    const checkTime = () => {
+      const now = Date.now();
+      const left = SESSION_END_TIME - now;
+      if (left <= 0) {
+        // Time is up
+        router.push('/results');
+      } else {
+        setTimeRemaining(left);
+      }
+    };
+
+    checkTime(); // Check immediately
+    const interval = setInterval(checkTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [router]);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   // Guard against empty data
   if (!quizQuestions.length) {
@@ -119,10 +147,17 @@ export default function QuizPage() {
       )}
 
       <div className="w-full max-w-3xl bg-white dark:bg-zinc-800 rounded-xl shadow-lg overflow-hidden">
-        {/* Header: Progress & Strikes */}
-        <div className="bg-gray-100 dark:bg-zinc-900/50 p-6 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 dark:border-zinc-700">
-          <div className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-4 sm:mb-0">
-            Question <span className="text-black dark:text-white text-xl">{currentQuestionIndex + 1}</span> of {totalQuestions}
+        {/* Header: Progress, Timer & Strikes */}
+        <div className="bg-gray-100 dark:bg-zinc-900/50 p-6 flex flex-col sm:flex-row justify-between items-center border-b border-gray-200 dark:border-zinc-700 gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+             <div className="text-lg font-semibold text-gray-600 dark:text-gray-400">
+              Question <span className="text-black dark:text-white text-xl">{currentQuestionIndex + 1}</span> of {totalQuestions}
+            </div>
+            {timeRemaining !== null && (
+              <div className="bg-gray-200 dark:bg-zinc-700 px-4 py-1 rounded-full font-mono font-bold text-gray-800 dark:text-gray-200">
+                ⏱ {formatTime(timeRemaining)}
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-3">
