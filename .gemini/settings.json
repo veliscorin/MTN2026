@@ -1,6 +1,6 @@
 {
   "toolPermissions": {
-    "alwaysAllow": ["write_file", "read_file", "list_directory", "replace", "glob"],
+    "alwaysAllow": ["write_file", "read_file", "list_directory", "replace", "glob", "edit_file"],
     "alwaysAsk": ["run_shell_command", "git"]
   },
   "general": {

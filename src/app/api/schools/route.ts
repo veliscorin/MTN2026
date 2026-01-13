@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getSchools } from '@/lib/db-actions';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), 'src', 'types', 'schools.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const schools = JSON.parse(fileContents);
+    const schools = await getSchools();
     return NextResponse.json(schools);
   } catch (error) {
-    console.error('Error reading schools.json:', error);
+    console.error('Error fetching schools from DynamoDB:', error);
     return NextResponse.json({ error: 'Could not load school data.' }, { status: 500 });
   }
 }

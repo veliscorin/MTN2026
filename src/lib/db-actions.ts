@@ -1,9 +1,19 @@
 import { docClient } from "./aws-config";
 import { UpdateCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
-import { UserState, Question, Difficulty } from "../types/quiz";
+import { UserState, Question, Difficulty, School } from "../types/quiz";
 
 const USER_TABLE = process.env.DYNAMODB_USER_TABLE || "UserState";
 const QUESTIONS_TABLE = process.env.DYNAMODB_QUESTIONS_TABLE || "Questions";
+const SCHOOLS_TABLE = process.env.DYNAMODB_SCHOOLS_TABLE || "WTN_Schools";
+
+export async function getSchools(): Promise<School[]> {
+  const command = new ScanCommand({
+    TableName: SCHOOLS_TABLE,
+  });
+
+  const response = await docClient.send(command);
+  return (response.Items || []) as School[];
+}
 
 export async function saveUserState(email: string, schoolId: string, state: Partial<UserState>) {
   const updateExpressions: string[] = [];
