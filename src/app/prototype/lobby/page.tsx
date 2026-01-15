@@ -20,7 +20,7 @@ export default function LobbyPage() {
         const email = localStorage.getItem('wtn_user_email');
 
         if (!schoolId || !email) {
-          router.push('/');
+          router.push('/prototype');
           return;
         }
         setUserEmail(email);
@@ -37,11 +37,11 @@ export default function LobbyPage() {
         if (stateRes.ok) {
             const state = await stateRes.json();
             if (state.status === 'COMPLETED') {
-                router.push('/results');
+                router.push('/prototype/results');
                 return;
             }
             if (state.status === 'DISQUALIFIED' || state.is_disqualified) {
-                router.push('/disqualified');
+                router.push('/prototype/disqualified');
                 return;
             }
         }
@@ -62,7 +62,7 @@ export default function LobbyPage() {
         // 4. CHECK: If already started, go straight to Quiz
         const currentServerTime = Date.now() + clockOffset;
         if (currentServerTime >= startTime) {
-           router.push('/quiz');
+           router.push('/prototype/quiz');
            return;
         }
 
@@ -75,7 +75,7 @@ export default function LobbyPage() {
 
           if (remaining <= 0) {
             clearInterval(intervalId);
-            router.push('/quiz');
+            router.push('/prototype/quiz');
           } else {
             setTimeLeft(remaining);
           }
@@ -112,7 +112,7 @@ export default function LobbyPage() {
     localStorage.removeItem('wtn_user_email');
     localStorage.removeItem('wtn_school_id');
     localStorage.removeItem('wtn_school_name');
-    router.push('/');
+    router.push('/prototype');
   };
 
   return (

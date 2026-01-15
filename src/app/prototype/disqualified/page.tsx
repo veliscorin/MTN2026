@@ -12,7 +12,7 @@ export default function DisqualifiedPage() {
       localStorage.removeItem('wtn_user_email');
       localStorage.removeItem('wtn_school_id');
       localStorage.removeItem('wtn_school_name');
-      router.push('/');
+      router.push('/prototype');
   };
 
   return (

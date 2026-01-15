@@ -32,7 +32,7 @@ export default function ResultsPage() {
     async function fetchResults() {
       const email = localStorage.getItem('wtn_user_email');
       if (!email) {
-        router.push('/');
+        router.push('/prototype');
         return;
       }
       setUserEmail(email);
@@ -58,7 +58,7 @@ export default function ResultsPage() {
       localStorage.removeItem('wtn_user_email');
       localStorage.removeItem('wtn_school_id');
       localStorage.removeItem('wtn_school_name');
-      router.push('/');
+      router.push('/prototype');
   };
 
   if (loading) {

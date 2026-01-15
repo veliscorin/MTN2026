@@ -20,7 +20,7 @@ The Synchronized Quiz Engine is a high-concurrency, serverless MCQ platform buil
 ## 3. FUNCTIONAL REQUIREMENTS
 
 ### 3.1 Pre-Login & Anti-Sabotage Authentication
-* **Early Access:** The login portal opens 30 minutes before the official `StartTime`.
+* **Early Access:** The login prototype opens 30 minutes before the official `StartTime`.
 * **Strict Gating:**
     - **Before Window:** Login blocked ("Quiz not started").
     - **In Window (T-30 to T-0):** Login allowed -> Lobby.

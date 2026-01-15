@@ -46,7 +46,7 @@ export default function QuizPage() {
 
   const { strikeCount } = useAntiCheat({
     onDisqualify: () => {
-      router.push('/disqualified');
+      router.push('/prototype/disqualified');
     },
   });
 
@@ -60,7 +60,7 @@ export default function QuizPage() {
 
         if (!email || !sId) {
           console.error("No user info found");
-          router.push('/');
+          router.push('/prototype');
           return;
         }
         setUserEmail(email);
@@ -85,11 +85,11 @@ export default function QuizPage() {
           
           // If already completed or disqualified, redirect
           if (state.status === 'COMPLETED') {
-            router.push('/results');
+            router.push('/prototype/results');
             return;
           }
           if (state.status === 'DISQUALIFIED' || state.is_disqualified) {
-            router.push('/disqualified');
+            router.push('/prototype/disqualified');
             return;
           }
 
@@ -192,7 +192,7 @@ export default function QuizPage() {
             console.error("Error auto-completing session:", e);
           }
         }
-        router.push('/results');
+        router.push('/prototype/results');
       } else {
         setTimeRemaining(left);
       }
@@ -230,9 +230,9 @@ export default function QuizPage() {
     if (!isFinished) {
       setCurrentQuestionIndex(nextIndex);
     }
-    // else if (isFinished) { // This else if is not in the original replace string, but it is in the original search string. I should keep the replace string as is. The original replace string has `else { router.push('/results'); }`
+    // else if (isFinished) { // This else if is not in the original replace string, but it is in the original search string. I should keep the replace string as is. The original replace string has `else { router.push('/prototype/results'); }`
     else {
-      router.push('/results');
+      router.push('/prototype/results');
     }
 
     // Background Save
