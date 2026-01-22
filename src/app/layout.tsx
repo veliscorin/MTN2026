@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TestModeBanner } from "@/components/test-mode-banner";
-import { TitleUpdater } from "@/components/title-updater";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,10 +14,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "WTN 2026",
-  description: "What's The News 2026 Academic Quiz",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers();
+  const host = headersList.get("host") || "unknown";
+  
+  let prefix = "";
+  if (host.includes("localhost") || host.includes("127.0.0.1")) {
+    prefix = "(LOCAL)";
+  } else {
+    prefix = `(${host.toUpperCase()})`;
+  }
+
+  return {
+    title: `${prefix} WTN 2026`,
+    description: "What's The News 2026 Academic Quiz",
+  };
+}
 
 export default function RootLayout({
   children,
@@ -29,7 +41,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TitleUpdater />
         <TestModeBanner />
         {children}
       </body>

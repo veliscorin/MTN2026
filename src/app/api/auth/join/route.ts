@@ -14,12 +14,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and School ID are required.' }, { status: 400 });
     }
 
+    // Helper for SG Time
+    const toSingaporeISO = (date: Date) => {
+        const tzOffset = 8 * 60; // Minutes
+        const localTime = new Date(date.getTime() + tzOffset * 60 * 1000);
+        return localTime.toISOString().split('.')[0] + '+08:00';
+    };
+
     // 1. Attempt to CREATE the user ONLY if they don't exist (Sabotage Lock)
     const initialUser = {
       email,
       school_id: schoolId,
       status: 'LOBBY',
-      joined_at: Date.now(),
+      joined_at: toSingaporeISO(new Date()),
       strike_count: 0,
       is_disqualified: false,
       score: 0

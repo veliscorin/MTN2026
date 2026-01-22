@@ -16,6 +16,9 @@ frontend:
         - 'echo "DYNAMODB_SESSIONS_TABLE=$DYNAMODB_SESSIONS_TABLE" >> .env.production'
         - 'echo "BASIC_AUTH_USER=$BASIC_AUTH_USER" >> .env.production'
         - 'echo "BASIC_AUTH_PASS=$BASIC_AUTH_PASS" >> .env.production'
+        - 'echo "WTN_MAILGUN_API_KEY=$WTN_MAILGUN_API_KEY" >> .env.production'
+        - 'echo "WTN_MAILGUN_DOMAIN=$WTN_MAILGUN_DOMAIN" >> .env.production'
+        - 'echo "WTN_MAILGUN_FROM=$WTN_MAILGUN_FROM" >> .env.production'
     build:
       commands:
         - npm run build

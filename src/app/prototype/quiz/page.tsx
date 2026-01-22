@@ -26,6 +26,26 @@ function shuffle<T>(array: T[]): T[] {
   return newArray;
 }
 
+function toSingaporeISO(date: Date) {
+    const tzOffset = 8 * 60; // Minutes
+    const localTime = new Date(date.getTime() + tzOffset * 60 * 1000);
+    return localTime.toISOString().split('.')[0] + '+08:00';
+}
+
+function formatTimeTaken(ms: number) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = ms % 1000;
+    
+    let parts = [];
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0) parts.push(`${seconds}s`);
+    if (milliseconds > 0) parts.push(`${milliseconds}ms`);
+    
+    return parts.join(' ') || "0ms";
+}
+
 export default function QuizPage() {
   const router = useRouter();
   
@@ -37,6 +57,7 @@ export default function QuizPage() {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [sessionEndTime, setSessionEndTime] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // User Info
@@ -104,6 +125,7 @@ export default function QuizPage() {
             setQuizQuestions(orderedQuestions);
             setCurrentQuestionIndex(state.current_index || 0);
             setResponses(state.answers || {});
+            setStartTime(new Date(state.start_time).getTime());
             setIsLoading(false);
             return;
           }
@@ -134,6 +156,8 @@ export default function QuizPage() {
         setQuizQuestions(shuffledQuestions);
         
         // Save Initial State
+        const now = Date.now();
+        setStartTime(now);
         const questionOrder = shuffledQuestions.map(q => q.qid);
         await fetch('/api/quiz/state', {
             method: 'POST',
@@ -144,7 +168,7 @@ export default function QuizPage() {
                     status: 'IN_PROGRESS',
                     question_order: questionOrder,
                     current_index: 0,
-                    start_time: Date.now(),
+                    start_time: toSingaporeISO(new Date(now)),
                     strike_count: 0
                 }
             })
@@ -178,14 +202,19 @@ export default function QuizPage() {
       
       if (left <= 0) {
         // Mark as completed in DB if possible
-        if (userEmail && schoolId) {
+        if (userEmail && schoolId && startTime) {
           try {
+            const finishTime = Date.now();
             await fetch('/api/quiz/state', {
                 method: 'POST',
                 body: JSON.stringify({
                     email: userEmail,
                     schoolId: schoolId,
-                    state: { status: 'COMPLETED' }
+                    state: { 
+                        status: 'COMPLETED',
+                        completed_at: toSingaporeISO(new Date(finishTime)),
+                        time_taken: formatTimeTaken(finishTime - startTime)
+                    }
                 })
             });
           } catch (e) {
@@ -237,16 +266,24 @@ export default function QuizPage() {
 
     // Background Save
     try {
+        const payload: any = {
+            status: isFinished ? 'COMPLETED' : 'IN_PROGRESS',
+            current_index: isFinished ? currentQuestionIndex : nextIndex,
+            answers: newResponses,
+        };
+
+        if (isFinished && startTime) {
+            const finishTime = Date.now();
+            payload.completed_at = toSingaporeISO(new Date(finishTime));
+            payload.time_taken = formatTimeTaken(finishTime - startTime);
+        }
+
         await fetch('/api/quiz/state', {
             method: 'POST',
             body: JSON.stringify({
                 email: userEmail,
                 schoolId: schoolId,
-                state: {
-                    status: isFinished ? 'COMPLETED' : 'IN_PROGRESS',
-                    current_index: isFinished ? currentQuestionIndex : nextIndex,
-                    answers: newResponses,
-                }
+                state: payload
             })
         });
     } catch (e) {

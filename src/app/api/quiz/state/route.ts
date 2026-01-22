@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserState, saveUserState } from '@/lib/db-actions';
 import questionsData from '@/data/questions.json';
+import { sendResultsEmail } from '@/lib/email-service';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -43,7 +44,16 @@ export async function POST(req: NextRequest) {
       state.score = currentScore;
     }
 
+    // Save to DynamoDB
     await saveUserState(email, schoolId, state);
+
+    // If Completed, Send Email
+    if (state.status === 'COMPLETED' && state.answers) {
+      // We don't block the response for email, but we should log errors.
+      // In serverless, it's safer to await to ensure execution before freeze.
+      await sendResultsEmail(email, state.answers, state.time_taken || 'N/A');
+    }
+
     return NextResponse.json({ success: true, score: state.score });
   } catch (error) {
     console.error('Error saving user state:', error);

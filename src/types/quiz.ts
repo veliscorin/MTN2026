@@ -16,7 +16,10 @@ export interface UserState {
   answers?: Record<string, string>; // Map of QID -> Selected Option
   score: number;
   strike_count: number;
-  start_time: number; // Epoch MS
+  start_time: string | number; // ISO String or Epoch MS
+  joined_at?: string | number; // ISO String or Epoch MS
+  completed_at?: string; // ISO String of completion time
+  time_taken?: string; // Human readable duration (e.g. 1m 5s)
   is_disqualified: boolean;
 }
 
