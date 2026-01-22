@@ -100,6 +100,7 @@ The Synchronized Quiz Engine is a high-concurrency, serverless MCQ platform buil
 | **text** | String | The question/prompt text. |
 | **options** | Array | List of 4 MCQ choices. |
 | **correct_key** | String | **REDACTED:** Used for server-side scoring only. |
+| **image_url** | String | (Optional) URL for a related image. |
 
 ### Table: Schools (DynamoDB: WTN_Schools)
 | Field | Type | Description |

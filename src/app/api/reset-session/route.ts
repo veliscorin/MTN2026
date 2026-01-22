@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   // Parse Query Params (Default: Lobby=3, Duration=5)
   const lobbyMinutes = parseInt(searchParams.get('lobby') || '3', 10);
   const durationMinutes = parseInt(searchParams.get('duration') || '5', 10);
+  const removeParam = searchParams.get('remove'); // Comma-separated emails to remove
 
   // Calculate Start Time: Now + Lobby Minutes
   const now = Date.now();
@@ -45,19 +46,23 @@ export async function GET(request: Request) {
     });
     await docClient.send(putSessionCommand);
 
-    // 2. Clear specific test users to allow re-testing
-    const testEmails = ["lax.chee@woven.sg", "weiliang.lee@woven.sg"];
-    for (const email of testEmails) {
-        await docClient.send(new DeleteCommand({
-            TableName: USER_TABLE,
-            Key: { email }
-        }));
+    // 2. Clear specific test users if requested
+    let clearedUsers: string[] = [];
+    if (removeParam) {
+        const emailsToRemove = removeParam.split(',').map(e => e.trim()).filter(Boolean);
+        for (const email of emailsToRemove) {
+            await docClient.send(new DeleteCommand({
+                TableName: USER_TABLE,
+                Key: { email }
+            }));
+        }
+        clearedUsers = emailsToRemove;
     }
 
     return NextResponse.json({
       success: true,
       message: "Test environment reset successfully.",
-      clearedUsers: testEmails,
+      clearedUsers: clearedUsers.length > 0 ? clearedUsers : "None",
       details: {
         startTime: startTimeStr,
         startsIn: `${lobbyMinutes} minutes`,

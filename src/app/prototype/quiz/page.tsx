@@ -393,7 +393,7 @@ export default function QuizPage() {
             {currentQuestion.text}
           </h2>
 
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {currentQuestion.options.map((option, idx) => (
               <button
                 key={idx}
