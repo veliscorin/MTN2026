@@ -2,7 +2,7 @@ import questionsData from '@/data/questions.json';
 
 const API_KEY = process.env.WTN_MAILGUN_API_KEY;
 const DOMAIN = process.env.WTN_MAILGUN_DOMAIN;
-const FROM_EMAIL = process.env.WTN_MAILGUN_FROM || `Quiz System <noreply@${DOMAIN}>`;
+const FROM_EMAIL = process.env.WTN_MAILGUN_FROM || 'WTN 2026 Secretariat <secretariat@whatsthenews2026.com>';
 
 interface EmailReviewItem {
   qid: string;

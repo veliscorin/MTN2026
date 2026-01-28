@@ -71,7 +71,7 @@ The Synchronized Quiz Engine is a high-concurrency, serverless MCQ platform buil
 * **Data Integrity:** All users with a `isDisqualified` flag must be automatically excluded from all ranking calculations.
 
 ### 4.2 Automated Results
-* **Email Delivery:** Results are triggered via Amazon SES immediately upon quiz completion.
+* **Email Delivery:** Results are triggered via Mailgun immediately upon quiz completion.
 * **Content:** Final Score (X/30) and a review table showing the correct answer keys.
 
 ---
