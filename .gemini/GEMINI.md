@@ -30,7 +30,7 @@ You are the Senior Lead Engineer for the WTN2026 Academic Quiz App. Your goal is
 - **Mandatory Rules**:
     - **No Registration**: Entry via School Selection + Email Prefix (auto-appended domain).
     - **Sequential Flow**: Strict 10-10-10 sequence (Easy -> Medium -> Hard).
-    - **No Timer**: No visible countdowns during the quiz itself (PRD 4.1).
+    - **Session Timer**: A persistent "Time Remaining" timer must be visible (PRD 3.3). **No per-question countdowns.**
     - **Anti-Cheat**: `visibilitychange`/`blur` events trigger strikes. 3 Strikes = Instant Disqualification (update `WTN_Participants`).
 - **Standards**:
     - **Mobile-First**: Optimized for iPads and Chromebooks.

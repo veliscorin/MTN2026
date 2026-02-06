@@ -37,7 +37,7 @@ export default function LobbyPage() {
         if (stateRes.ok) {
             const state = await stateRes.json();
             if (state.status === 'COMPLETED') {
-                router.push('/prototype/results');
+                router.push('/prototype/score');
                 return;
             }
             if (state.status === 'DISQUALIFIED' || state.is_disqualified) {

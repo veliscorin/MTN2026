@@ -206,7 +206,7 @@ export default function LoginPage() {
       localStorage.setItem('wtn_school_name', selectedSchool.name);
 
       if (data.status === 'RESUMED' && data.prevStatus === 'COMPLETED') {
-        router.push('/prototype/results');
+        router.push('/prototype/score');
       } else {
         router.push('/prototype/lobby');
       }
@@ -219,7 +219,7 @@ export default function LoginPage() {
 
   const handleResume = () => {
       if (existingSession?.isCompleted) {
-        router.push('/prototype/results');
+        router.push('/prototype/score');
       } else {
         router.push('/prototype/lobby');
       }

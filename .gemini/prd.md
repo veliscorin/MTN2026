@@ -1,7 +1,7 @@
-# 📝 Product Requirements Document: Synchronized Quiz Engine (v13)
+# 📝 Product Requirements Document: Synchronized Quiz Engine (v13.1)
 
 **Project Name:** What’s The News 2026 – Academic Quiz Engine  
-**Version:** 13.0  
+**Version:** 13.1  
 **Target Concurrency:** 10,000 – 12,000 (32,000 Total Users)
 
 ---
@@ -31,7 +31,7 @@ The Synchronized Quiz Engine is a high-concurrency, serverless MCQ platform buil
     * The system **must** use **DynamoDB Conditional Writes** (`attribute_not_exists`).
     * Once a student "claims" an email prefix for a specific school, the record is locked.
     * Subsequent attempts to "Start" or "Login" with that identical prefix must be rejected with a "Session already active" error to prevent intentional or accidental sabotage.
-* **Join Cut-off:** Entry is strictly blocked if a student attempts to join within the final 5 minutes of the session window.
+* **Join Window:** Students can join any time until the `SessionEndTime`.
 
 ### 3.2 The Synchronized Lobby (Wait State)
 * **Lobby View:** Upon successful login before the start time, users are placed in a "Lobby" state.

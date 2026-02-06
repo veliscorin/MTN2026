@@ -1,43 +1,46 @@
 "use client";
 
 import { isTestMode } from "@/lib/test-mode";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { BRAND_COLORS } from "@/lib/utils";
 
 export function TestModeBanner() {
-  const [info, setInfo] = useState<{ duration: number; lobby: number } | null>(null);
-
-  useEffect(() => {
-    if (!isTestMode()) return;
-
-    // Fetch session details using a default test school (sch_01)
-    fetch('/api/session?schoolId=sch_01')
-      .then(res => res.json())
-      .then(data => {
-        if (data.durationMinutes) {
-          setInfo({
-            duration: data.durationMinutes,
-            lobby: data.entryWindowMinutes || 30 // Default to 30 if undefined
-          });
-        }
-      })
-      .catch(err => console.error("Failed to fetch test session info:", err));
-  }, []);
+  const [isResetting, setIsResetting] = useState(false);
 
   if (!isTestMode()) return null;
 
+  const handleReset = async () => {
+    if (isResetting) return;
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/reset-session');
+      if (res.ok) {
+        // Force refresh to clear state
+        window.location.reload();
+      } else {
+        alert("Reset failed.");
+        setIsResetting(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error resetting.");
+      setIsResetting(false);
+    }
+  };
+
   return (
-    <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-center py-2 font-bold z-50 shadow-md text-xs sm:text-sm flex justify-center items-center gap-4">
-      <span>
-        ⚠️ TEST MODE: 6 QNS | {info ? `${info.duration} MIN DURATION` : '...'} | {info ? `${info.lobby} MIN LOBBY` : '...'} ⚠️
-      </span>
-      <a 
-        href="/api/reset-session" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="underline text-white hover:text-red-200"
+    <div className="fixed bottom-6 left-6 z-[100]">
+      <button
+        onClick={handleReset}
+        disabled={isResetting}
+        className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-xl transition-all active:scale-95 disabled:opacity-50"
       >
-        [Reset Session]
-      </a>
+        <RefreshCw className={isResetting ? "w-4 h-4 animate-spin" : "w-4 h-4"} />
+        <span className="text-xs font-black uppercase tracking-widest">
+            {isResetting ? 'Resetting...' : 'Test Mode Reset'}
+        </span>
+      </button>
     </div>
   );
 }

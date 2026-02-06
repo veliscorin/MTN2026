@@ -51,7 +51,7 @@ export default function QuizPage() {
   const router = useRouter();
   
   // State
-  const [quizQuestions, setQuizQuestions] = useState<Question[] | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<(Question & { cardback: string })[] | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -60,6 +60,7 @@ export default function QuizPage() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFlipping, setIsFlipping] = useState(false);
 
   // User Info
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -101,13 +102,20 @@ export default function QuizPage() {
         // Fetch User State (Persistence)
         const stateRes = await fetch(`/api/quiz/state?email=${email}`);
         
+        const CARDBACKS = [
+          '/images/quiz-cardback-blue.png',
+          '/images/quiz-cardback-green.png',
+          '/images/quiz-cardback-orange.png',
+          '/images/quiz-cardback-pinkg.png'
+        ];
+
         if (stateRes.ok) {
           // Restore State
           const state = await stateRes.json();
           
           // If already completed or disqualified, redirect
           if (state.status === 'COMPLETED') {
-            router.push('/prototype/results');
+            router.push('/prototype/score');
             return;
           }
           if (state.status === 'DISQUALIFIED' || state.is_disqualified) {
@@ -120,8 +128,9 @@ export default function QuizPage() {
             const orderedQuestions = state.question_order.map((qid: string) => {
                const q = questionsData.find(q => q.qid === qid);
                // Note: Options are re-shuffled on restore for now, but Question order is preserved.
-               return q ? { ...q, options: shuffle(q.options) } : null;
-            }).filter(Boolean) as Question[];
+               const cardback = CARDBACKS[Math.floor(Math.random() * CARDBACKS.length)];
+               return q ? { ...q, options: shuffle(q.options), cardback } : null;
+            }).filter(Boolean) as (Question & { cardback: string })[];
 
             setQuizQuestions(orderedQuestions);
             setCurrentQuestionIndex(state.current_index || 0);
@@ -152,7 +161,11 @@ export default function QuizPage() {
           ...easy,
           ...medium,
           ...hard
-        ].map(q => ({ ...q, options: shuffle(q.options) }));
+        ].map(q => ({ 
+            ...q, 
+            options: shuffle(q.options),
+            cardback: CARDBACKS[Math.floor(Math.random() * CARDBACKS.length)]
+        }));
 
         setQuizQuestions(shuffledQuestions);
         
@@ -222,7 +235,7 @@ export default function QuizPage() {
             console.error("Error auto-completing session:", e);
           }
         }
-        router.push('/prototype/results');
+        router.push('/prototype/score');
       } else {
         setTimeRemaining(left);
       }
@@ -245,25 +258,33 @@ export default function QuizPage() {
   };
 
   const handleNext = async () => {
-    if (!selectedOption || !quizQuestions || !userEmail || !schoolId) return;
+    if (!selectedOption || !quizQuestions || !userEmail || !schoolId || isFlipping) return;
 
     const currentQuestion = quizQuestions[currentQuestionIndex];
     const newResponses = { ...responses, [currentQuestion.qid]: selectedOption };
     
-    setResponses(newResponses);
-    setSelectedOption(null);
+    // Stage 1: Flip to Back
+    setIsFlipping(true);
 
     const nextIndex = currentQuestionIndex + 1;
     const isFinished = nextIndex >= quizQuestions.length;
 
-    // Optimistic UI Update
-    if (!isFinished) {
-      setCurrentQuestionIndex(nextIndex);
-    }
-    // else if (isFinished) { // This else if is not in the original replace string, but it is in the original search string. I should keep the replace string as is. The original replace string has `else { router.push('/prototype/results'); }`
-    else {
-      router.push('/prototype/results');
-    }
+    // Stage 2: Swap content while face down (at 300ms)
+    setTimeout(() => {
+        setResponses(newResponses);
+        setSelectedOption(null);
+        if (!isFinished) {
+            setCurrentQuestionIndex(nextIndex);
+        } else {
+            router.push('/prototype/score');
+        }
+    }, 300);
+
+    // Stage 3: After content swap, we stay at 180deg for a moment then flip back to 0
+    // To do this naturally, we toggle isFlipping off after 600ms
+    setTimeout(() => {
+        setIsFlipping(false);
+    }, 600);
 
     // Background Save
     try {
@@ -304,12 +325,37 @@ export default function QuizPage() {
 
   const currentQuestion = quizQuestions[currentQuestionIndex];
   const totalQuestions = quizQuestions.length;
+  const progressPercentage = ((currentQuestionIndex) / (totalQuestions - 1)) * 100;
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col md:flex-row relative p-4 md:p-8 overflow-hidden font-[Agenda,sans-serif]">
-      
+      {/* --- PAGE BACKGROUND (Overlays Layout) --- */}
+      <div 
+        className="fixed inset-0 z-[-1] bg-[url('/images/quiz-bg.png')] bg-cover bg-bottom bg-no-repeat"
+        aria-hidden="true"
+      />
+
+      {/* --- DECORATIVE ELEMENTS (Conveyor Belt) --- */}
+      <div className="fixed top-1/2 right-0 -translate-y-1/2 z-0 pointer-events-none select-none w-[500px]">
+          {/* We render cardbacks for all remaining questions */}
+          {quizQuestions.slice(currentQuestionIndex + 1).map((q, i) => (
+              <div 
+                key={q.qid} 
+                className="absolute top-1/2 left-0 -translate-y-1/2 transition-all duration-500 ease-in-out"
+                style={{ 
+                    transform: `translateY(-50%) translateX(${i * 60}px) scale(${0.8 - (i * 0.05)})`,
+                    zIndex: -i,
+                    opacity: 1 - (i * 0.15)
+                }}
+              >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={q.cardback} alt="" className="w-[300px] h-auto drop-shadow-xl" />
+              </div>
+          ))}
+      </div>
+
       {/* --- LEFT COLUMN: Logo, Info, Timer --- */}
-      <div className="flex-1 flex flex-col justify-between max-w-xl relative z-10 pb-20 md:pb-0">
+      <div className="flex-[0.8] flex flex-col justify-between max-w-lg relative z-10 pb-20 md:pb-0">
         
         {/* Top: Logo & Description */}
         <div className="space-y-6 mt-4 md:mt-8 pl-4">
@@ -326,119 +372,156 @@ export default function QuizPage() {
         </div>
 
         {/* Bottom: Timer Board */}
-        <div className="mt-auto mb-8 pl-4 relative">
-             {/* Placeholder Timer Styling - To be replaced by asset later */}
-             <div className="bg-[#242F6B] text-white rounded-2xl p-6 w-full max-w-sm shadow-xl relative overflow-visible">
-                {/* Decorative Bolts (CSS Placeholder) */}
-                <div className="absolute top-2 left-2 w-2 h-2 bg-gray-500 rounded-full opacity-50"></div>
-                <div className="absolute top-2 right-2 w-2 h-2 bg-gray-500 rounded-full opacity-50"></div>
-                <div className="absolute bottom-2 left-2 w-2 h-2 bg-gray-500 rounded-full opacity-50"></div>
-                <div className="absolute bottom-2 right-2 w-2 h-2 bg-gray-500 rounded-full opacity-50"></div>
-
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-widest text-blue-200 mb-1">Timer</p>
-                        <div 
-                            className="text-6xl font-bold leading-none tabular-nums"
-                            style={{ fontFamily: 'var(--font-parkinsans), sans-serif' }}
-                        >
-                             {timeRemaining !== null ? formatTime(timeRemaining) : "00:00"}
-                        </div>
+        <div className="mt-auto mb-[93px] ml-6 relative">
+             <div className="relative w-full max-w-[280px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/quiz-timer.png" alt="Timer Board" className="w-full h-auto drop-shadow-lg" />
+                <div className="absolute inset-0 flex flex-col items-start justify-center pt-0 pr-[15px] pl-[35px]">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/90 mb-1 drop-shadow-sm -mt-[46px]">Timer</p>
+                    <div 
+                        className="text-4xl md:text-5xl font-bold leading-none tabular-nums text-white drop-shadow-md"
+                        style={{ 
+                            fontFamily: 'var(--font-parkinsans), sans-serif',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                    >
+                         {timeRemaining !== null ? formatTime(timeRemaining) : "00:00"}
                     </div>
-                    {/* Clock Icon Placeholder */}
-                    <div className="text-4xl">⏱️</div> 
                 </div>
              </div>
         </div>
       </div>
 
       {/* --- RIGHT COLUMN: Question Card --- */}
-      <div className="flex-[1.5] flex items-center justify-center relative z-10 p-4">
+      <div className="flex-[1.2] flex items-center justify-center relative z-10 p-4 md:translate-x-12">
         
-        {/* Main Question Card */}
-        <Card className="w-full max-w-2xl bg-white !bg-white rounded-[40px] shadow-2xl border-0 overflow-hidden relative">
-            <CardContent className="p-8 md:p-10 space-y-6">
-                
-                {/* 1. Question Image */}
-                {currentQuestion.image_url && (
-                    <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img 
-                            src={currentQuestion.image_url} 
-                            alt="Question Reference" 
-                            className="w-full h-64 object-cover"
-                        />
-                    </div>
+        {/* 3D Container */}
+        <div className="w-full max-w-lg [perspective:1000px]">
+            <div 
+                className={cn(
+                    "relative w-full transition-transform duration-700 [transform-style:preserve-3d]",
+                    isFlipping ? "[transform:rotateY(180deg)]" : ""
                 )}
-
-                {/* 2. Label & Text */}
-                <div className="space-y-4">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                        QUESTION {String(currentQuestionIndex + 1).padStart(2, '0')} - {totalQuestions}
-                    </p>
-                    <h2 className="text-2xl md:text-3xl font-bold text-[#333132] leading-tight">
-                        {currentQuestion.text}
-                    </h2>
-                </div>
-
-                {/* 3. Options (A, B, C...) */}
-                <div className="grid grid-cols-1 gap-4 pt-2">
-                    {currentQuestion.options.map((option, idx) => {
-                        const letters = ['A', 'B', 'C', 'D', 'E'];
-                        const letter = letters[idx] || '?';
-                        const isSelected = selectedOption === option;
-
-                        return (
-                            <button
-                                key={idx}
-                                onClick={() => handleOptionSelect(option)}
-                                className={cn(
-                                    "w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center gap-4 group",
-                                    isSelected 
-                                        ? 'border-[#F38133] bg-orange-50 shadow-md' 
-                                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                )}
-                            >
-                                {/* Circle Letter Indicator */}
-                                <div className={cn(
-                                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-colors",
-                                    isSelected
-                                        ? "bg-[#F38133] border-[#F38133] text-white"
-                                        : "bg-white border-[#F38133] text-[#F38133]"
-                                )}>
-                                    {letter}
+            >
+                {/* FRONT FACE (The Question) */}
+                <div className="relative w-full [backface-visibility:hidden] z-10">
+                    <Card className="w-full bg-white !bg-white rounded-[40px] shadow-2xl border-0 overflow-hidden">
+                        <CardContent className="p-4 md:p-6 !pt-0 !px-4 space-y-4">
+                            
+                            {/* 1. Question Image - Flush with top/sides */}
+                            {currentQuestion.image_url && (
+                                <div className="mx-[-16px] md:mx-[-24px] mb-4 overflow-hidden shadow-sm">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img 
+                                        src={currentQuestion.image_url} 
+                                        alt="Question Reference" 
+                                        className="w-full h-48 md:h-56 object-cover"
+                                    />
                                 </div>
-                                
-                                {/* Option Text */}
-                                <span className={cn(
-                                    "text-lg font-medium",
-                                    isSelected ? 'text-[#333132]' : 'text-gray-600'
-                                )}>
-                                    {option}
-                                </span>
-                            </button>
-                        );
-                    })}
+                            )}
+
+                            {/* 2. Label & Text - Keep Standard Gutter */}
+                            <div className="space-y-3 px-2 md:px-4">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                    QUESTION {String(currentQuestionIndex + 1).padStart(2, '0')} - {totalQuestions}
+                                </p>
+                                <h2 className="text-xl md:text-2xl font-bold text-[#333132] leading-tight">
+                                    {currentQuestion.text}
+                                </h2>
+                            </div>
+
+                            {/* 3. Options (A, B, C...) - Keep Standard Gutter */}
+                            <div className="grid grid-cols-1 gap-3 pt-1 px-2 md:px-4">
+                                {currentQuestion.options.map((option, idx) => {
+                                    const letters = ['A', 'B', 'C', 'D', 'E'];
+                                    const letter = letters[idx] || '?';
+                                    const isSelected = selectedOption === option;
+
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleOptionSelect(option)}
+                                            className={cn(
+                                                "w-full text-left p-3 rounded-2xl border-2 transition-all duration-200 flex items-center gap-3 group",
+                                                isSelected 
+                                                    ? 'border-[#F38133] bg-orange-50 shadow-md' 
+                                                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-base border-2 transition-colors",
+                                                isSelected
+                                                    ? "bg-[#F38133] border-[#F38133] text-white"
+                                                    : "bg-white border-[#F38133] text-[#F38133]"
+                                            )}>
+                                                {letter}
+                                            </div>
+                                            <span className={cn(
+                                                "text-base font-medium",
+                                                isSelected ? 'text-[#333132]' : 'text-gray-600'
+                                            )}>
+                                                {option}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* 4. Action Button */}
+                            <div className="pt-4 pb-4 flex justify-end px-2 md:px-4">
+                                <Button
+                                    onClick={handleNext}
+                                    disabled={!selectedOption}
+                                    className={cn(
+                                        "rounded-full px-6 h-10 text-base font-bold transition-all shadow-lg",
+                                        selectedOption 
+                                            ? "bg-[#F38133] hover:bg-[#d9722b] text-white transform active:scale-95" 
+                                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    )}
+                                >
+                                    {currentQuestionIndex === totalQuestions - 1 ? 'FINISH' : 'NEXT'}
+                                </Button>
+                            </div>
+
+                        </CardContent>
+                    </Card>
                 </div>
 
-                {/* 4. Action Button (Hidden until selected?) or Visible? Keeping visible for now */}
-                <div className="pt-4 flex justify-end">
-                  <Button
-                    onClick={handleNext}
-                    disabled={!selectedOption}
-                    className={cn(
-                        "rounded-full px-8 h-12 text-lg font-bold transition-all shadow-lg",
-                        selectedOption 
-                            ? "bg-[#F38133] hover:bg-[#d9722b] text-white transform active:scale-95" 
-                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    )}
-                  >
-                    {currentQuestionIndex === totalQuestions - 1 ? 'FINISH EXAM' : 'NEXT QUESTION'}
-                  </Button>
+                {/* BACK FACE (Cardback Image) */}
+                <div 
+                    className="absolute inset-0 w-full h-full rounded-[40px] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)] z-0"
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={currentQuestion.cardback} alt="" className="w-full h-full object-cover shadow-2xl" />
                 </div>
+            </div>
+        </div>
+      </div>
 
-            </CardContent>
-        </Card>
+      {/* --- BOTTOM PROGRESS TRACK & MASCOT --- */}
+      <div className="fixed bottom-0 left-0 w-full h-32 z-20 pointer-events-none">
+          
+          {/* Moving Mascot Container */}
+          <div 
+            className="absolute bottom-4 transition-all duration-500 ease-in-out"
+            style={{ 
+                left: `calc(2.5rem + (100% - 10rem) * ${progressPercentage / 100})`,
+                transform: 'translateX(-50%)'
+            }}
+          >
+             <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                    src="/images/quiz-mascot.png" 
+                    alt="Progress Mascot" 
+                    className="h-24 md:h-28 w-auto drop-shadow-lg"
+                />
+                {/* Floating Progress Bubble (Optional) */}
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white px-2 py-1 rounded-lg shadow-sm border text-[10px] font-bold text-[#F38133] whitespace-nowrap">
+                    Q{currentQuestionIndex + 1}
+                </div>
+             </div>
+          </div>
       </div>
 
       {/* --- TOP RIGHT: Rule Violations (Absolute) --- */}
